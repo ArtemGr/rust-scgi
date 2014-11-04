@@ -1,0 +1,10 @@
+[package]
+name = "scgi"
+version = "0.0.1"
+authors = ["ArtemGr <artemciy@gmail.com>"]
+
+[lib]
+name = "scgi"
+path = "src/scgi.rs"
+test = false
+doctest = false
