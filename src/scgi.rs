@@ -1,46 +1,58 @@
-// SCGI server and request dispatcher.
+// SCGI parser.
 
 #![feature(slicing_syntax)]
 
-use std::collections::hashmap::HashMap;
-use std::io::{Listener, Acceptor, BufferedStream};
+//use std::collections::HashMap;  // NB: HashMap is slow: http://www.reddit.com/r/rust/comments/2l4kxf/std_hashmap_is_slow/
+use std::error::FromError;
+use std::io::{Listener, Acceptor, BufferedStream, IoError};
 use std::io::net::tcp::{TcpListener, TcpStream};
 use std::io::timer::sleep;
 use std::str::from_utf8;
 use std::time::duration::Duration;
 
-pub fn scgi_parse (tcp_stream: TcpStream, header: |&str,&str|) -> BufferedStream<TcpStream> {
+#[deriving(Show)]
+pub enum ScgiError {
+  BadLength,  /// Length can't be UTF-8 decoded to a string or an integer.
+  WrongLength (String),  /// Netstring sanity checks fail.
+  WrongHeaders,  /// Error parsing the zero-terminated HTTP headers.
+  IO (IoError)
+}
+impl FromError<IoError> for ScgiError {
+  fn from_error (io_error: IoError) -> ScgiError {IO (io_error)}
+}
+
+pub fn scgi_parse (tcp_stream: TcpStream, header: |&str,&str|) -> Result<BufferedStream<TcpStream>, ScgiError> {
   let mut stream = BufferedStream::new (tcp_stream);
   let mut headers: Vec<u8>;
   // Read and parse the headers.
   let mut length_string: [u8, ..10] = unsafe {std::mem::uninitialized()};
   let mut length_string_len = 0u;
   loop {
-    let ch = stream.read_char().unwrap();
+    let ch = try! (stream.read_char());
     if ch >= '0' && ch <= '9' {
       length_string[length_string_len] = ch as u8; length_string_len += 1;
     } else if ch == ':' {
-      let length: uint = from_str (from_utf8 (length_string[..length_string_len]) .unwrap()) .unwrap();
-      let headers_buf = stream.read_exact (length) .unwrap();
-      if stream.read_char().unwrap() != ','
-        {panic! ("Wrong SCGI header length: {}", from_utf8 (length_string[..length_string_len]) .unwrap());}
+      let length_str = try! (from_utf8 (length_string[..length_string_len]) .ok_or (BadLength));
+      let length: uint = try! (from_str (length_str) .ok_or (BadLength));
+      let headers_buf = try! (stream.read_exact (length));
+      if try! (stream.read_char()) != ',' {return Err (WrongLength (length_str.to_string()))}
       headers = headers_buf; break;
     } else {
       length_string[length_string_len] = ch as u8; length_string_len += 1;
-      panic! ("Wrong SCGI header length: {}", from_utf8 (length_string[..length_string_len]) .unwrap());
+      return Err (WrongLength (try! (from_utf8 (length_string[..length_string_len]) .ok_or (BadLength)).to_string()));
     }
   };
   let mut pos = 0u;
   while pos < headers.len() {
-    let zero1 = headers[pos..].iter().position (|&ch|ch == 0) .unwrap();
-    let header_name = from_utf8 (headers[pos .. pos + zero1]) .unwrap();
+    let zero1 = try! (headers[pos..].iter().position (|&ch|ch == 0) .ok_or (WrongHeaders));
+    let header_name = try! (from_utf8 (headers[pos .. pos + zero1]) .ok_or (WrongHeaders));
     pos = pos + zero1 + 1;
-    let zero2 = headers[pos..].iter().position (|&ch|ch == 0) .unwrap();
-    let header_value = from_utf8 (headers[pos .. pos + zero2]) .unwrap();
+    let zero2 = try! (headers[pos..].iter().position (|&ch|ch == 0) .ok_or (WrongHeaders));
+    let header_value = try! (from_utf8 (headers[pos .. pos + zero2]) .ok_or (WrongHeaders));
     header (header_name, header_value);
     pos = pos + zero2 + 1;
   }
-  stream
+  Ok (stream)
 }
 
 /*pub fn scgi_map (tcp_stream: TcpStream) {
@@ -66,7 +78,7 @@ pub fn scgi_parse (tcp_stream: TcpStream, header: |&str,&str|) -> BufferedStream
   match stream {
     Err (err) => {panic! ("Accept error: {}", err)},
     Ok (tcp_stream) => {
-      let mut stream = scgi_parse (tcp_stream, |_,_|{});
+      let mut stream = scgi_parse (tcp_stream, |_,_|{}) .unwrap();
       stream.write (b"Status: 200 OK\r\nContent-Type: text/plain\r\n\r\n42") .unwrap();
     }
   }
