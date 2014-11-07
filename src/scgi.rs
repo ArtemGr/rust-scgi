@@ -7,7 +7,7 @@
 
 extern crate rustc;
 
-use rustc::util::nodemap::FnvHasher;
+use rustc::util::nodemap::FnvHasher;  // http://www.reddit.com/r/rust/comments/2l4kxf/std_hashmap_is_slow/
 use std::collections::HashMap;
 use std::error::FromError;
 use std::io::{Listener, Acceptor, BufferedStream, IoError};
