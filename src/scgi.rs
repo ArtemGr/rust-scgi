@@ -1,8 +1,12 @@
 // SCGI parser.
 
 #![feature(slicing_syntax)]
+#![feature(default_type_params)]
 
-//use std::collections::HashMap;  // NB: HashMap is slow: http://www.reddit.com/r/rust/comments/2l4kxf/std_hashmap_is_slow/
+extern crate rustc;
+
+use rustc::util::nodemap::FnvHasher;
+use std::collections::HashMap;
 use std::error::FromError;
 use std::io::{Listener, Acceptor, BufferedStream, IoError};
 use std::io::net::tcp::{TcpListener, TcpStream};
@@ -55,13 +59,11 @@ pub fn scgi_parse (tcp_stream: TcpStream, header: |&str,&str|) -> Result<Buffere
   Ok (stream)
 }
 
-/*pub fn scgi_map (tcp_stream: TcpStream) {
-        let mut uri: &str = "";
-        let mut headers_map = HashMap::<&str, &str>::with_capacity (48);
-            if header_name == "REQUEST_URI" {uri = header_value}
-            //status.log (format! ("{}: {}", header_name, header_value));
-            headers_map.insert (header_name, header_value);
-}*/
+pub fn scgi_string_map (tcp_stream: TcpStream) -> Result<(HashMap<String, String, FnvHasher>, BufferedStream<TcpStream>), ScgiError> {
+  let mut headers_map = std::collections::HashMap::with_capacity_and_hasher (48, FnvHasher);
+  let buffered_stream = try! (scgi_parse (tcp_stream, |name,value| {headers_map.insert (name.to_string(), value.to_string());}));
+  Ok ((headers_map, buffered_stream))
+}
 
 #[test] fn test_scgi() {
   let port = 13123;
@@ -78,7 +80,8 @@ pub fn scgi_parse (tcp_stream: TcpStream, header: |&str,&str|) -> Result<Buffere
   match stream {
     Err (err) => {panic! ("Accept error: {}", err)},
     Ok (tcp_stream) => {
-      let mut stream = scgi_parse (tcp_stream, |_,_|{}) .unwrap();
+      let (map, mut stream) = scgi_string_map (tcp_stream) .unwrap();
+      assert_eq! (map["REQUEST_URI".to_string()][], "/deepthought");
       stream.write (b"Status: 200 OK\r\nContent-Type: text/plain\r\n\r\n42") .unwrap();
     }
   }
