@@ -1,4 +1,6 @@
-// SCGI parser.
+//! SCGI parser.
+//!
+//! This is partly a port of my Java parser: https://gist.github.com/ArtemGr/38425.
 
 #![feature(slicing_syntax)]
 #![feature(default_type_params)]
@@ -15,17 +17,26 @@ use std::io::timer::sleep;
 use std::str::from_utf8;
 use std::time::duration::Duration;
 
+/// SCGI parsing errors.
 #[deriving(Show)]
 pub enum ScgiError {
-  BadLength,  /// Length can't be UTF-8 decoded to a string or an integer.
-  WrongLength (String),  /// Netstring sanity checks fail.
-  WrongHeaders,  /// Error parsing the zero-terminated HTTP headers.
+  /// Length can't be UTF-8 decoded to a string or an integer.
+  BadLength,
+  /// Netstring sanity checks fail.
+  WrongLength (String),
+  /// Error parsing the zero-terminated HTTP headers.
+  WrongHeaders,
+  /// IoError, like when connection closed prematurely.
   IO (IoError)
 }
 impl FromError<IoError> for ScgiError {
   fn from_error (io_error: IoError) -> ScgiError {IO (io_error)}
 }
 
+/// Parse the headers, invoking the `header` closure for every header parsed.
+///
+/// Returns the `tcp_stream` wrapped into a `BufferedStream`.<br>
+/// You should use it to read the rest of the query and send the response.
 pub fn scgi_parse (tcp_stream: TcpStream, header: |&str,&str|) -> Result<BufferedStream<TcpStream>, ScgiError> {
   let mut stream = BufferedStream::new (tcp_stream);
   let mut headers: Vec<u8>;
@@ -60,6 +71,10 @@ pub fn scgi_parse (tcp_stream: TcpStream, header: |&str,&str|) -> Result<Buffere
   Ok (stream)
 }
 
+/// Parse the headers and pack them into a map.
+///
+/// Returns the map with the headers and the `tcp_stream` wrapped into a `BufferedStream`.<br>
+/// You should use the stream to read the rest of the query and send the response.
 pub fn scgi_string_map (tcp_stream: TcpStream) -> Result<(HashMap<String, String, FnvHasher>, BufferedStream<TcpStream>), ScgiError> {
   let mut headers_map = std::collections::HashMap::with_capacity_and_hasher (48, FnvHasher);
   let buffered_stream = try! (scgi_parse (tcp_stream, |name,value| {headers_map.insert (name.to_string(), value.to_string());}));
