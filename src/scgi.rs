@@ -9,6 +9,7 @@ use rustc::util::nodemap::FnvHasher;
 use std::collections::HashMap;
 use std::error::FromError;
 use std::io::{Listener, Acceptor, BufferedStream, IoError};
+use std::io::net::ip::ToSocketAddr;
 use std::io::net::tcp::{TcpListener, TcpStream};
 use std::io::timer::sleep;
 use std::str::from_utf8;
@@ -69,12 +70,12 @@ pub fn scgi_string_map (tcp_stream: TcpStream) -> Result<(HashMap<String, String
   let port = 13123;
   spawn (proc() {
     sleep (Duration::milliseconds (10));
-    let mut stream = TcpStream::connect ("127.0.0.1", port);
+    let mut stream = TcpStream::connect (("127.0.0.1", port));
     stream.write (b"70:CONTENT_LENGTH\x0056\x00SCGI\x001\x00REQUEST_METHOD\x00POST\x00REQUEST_URI\x00/deepthought\x00,") .unwrap();
     stream.write (b"What is the answer to life, the Universe and everything?") .unwrap();
     assert_eq! (stream.read_to_string().unwrap()[], "Status: 200 OK\r\nContent-Type: text/plain\r\n\r\n42");
   });
-  let mut acceptor = TcpListener::bind ("127.0.0.1", port) .listen().unwrap();
+  let mut acceptor = TcpListener::bind (("127.0.0.1", port)) .listen().unwrap();
   acceptor.set_timeout (Some (100));
   let stream = acceptor.incoming().next().unwrap();
   match stream {

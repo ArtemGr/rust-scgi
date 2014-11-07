@@ -6,3 +6,4 @@ authors = ["ArtemGr <artemciy@gmail.com>"]
 [lib]
 name = "scgi"
 path = "src/scgi.rs"
+doctest = false
