@@ -1,0 +1,8 @@
+# http://docs.travis-ci.com/user/getting-started/
+# http://docs.travis-ci.com/user/languages/rust/
+# http://www.rust-ci.org/help/
+
+language: rust
+script:
+- cargo test
+- cargo doc
