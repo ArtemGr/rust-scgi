@@ -35,14 +35,14 @@ impl FromError<IoError> for ScgiError {
   fn from_error (io_error: IoError) -> ScgiError {IO (io_error)}
 }
 
-/// Parse the headers, invoking the `header` closure for every header parsed.
+/// Read the headers from the stream.
 ///
-/// Returns the `tcp_stream` wrapped into a `BufferedStream`.<br>
-/// You should use it to read the rest of the query and send the response.
-pub fn scgi_parse (tcp_stream: TcpStream, header: |&str,&str|) -> Result<BufferedStream<TcpStream>, ScgiError> {
+/// Returns the vector containing the headers and the `tcp_stream` wrapped into a `BufferedStream`.<br>
+/// You should use the stream to read the rest of the query and send the response.
+pub fn read_headers (tcp_stream: TcpStream) -> Result<(Vec<u8>, BufferedStream<TcpStream>), ScgiError> {
   let mut stream = BufferedStream::new (tcp_stream);
-  let mut headers: Vec<u8>;
-  // Read and parse the headers.
+  let mut raw_headers: Vec<u8>;
+  // Read the headers.
   let mut length_string: [u8, ..10] = unsafe {std::mem::uninitialized()};
   let mut length_string_len = 0u;
   loop {
@@ -54,33 +54,42 @@ pub fn scgi_parse (tcp_stream: TcpStream, header: |&str,&str|) -> Result<Buffere
       let length: uint = try! (from_str (length_str) .ok_or (BadLength));
       let headers_buf = try! (stream.read_exact (length));
       if try! (stream.read_char()) != ',' {return Err (WrongLength (length_str.to_string()))}
-      headers = headers_buf; break;
+      raw_headers = headers_buf; break;
     } else {
       length_string[length_string_len] = ch as u8; length_string_len += 1;
       return Err (WrongLength (try! (from_utf8 (length_string[..length_string_len]) .ok_or (BadLength)).to_string()));
     }
   };
+  Ok ((raw_headers, stream))
+}
+
+/// Parse the headers, invoking the `header` closure for every header parsed.
+pub fn parse<'h> (raw_headers: &'h Vec<u8>, header: |&'h str,&'h str|) -> Result<(), ScgiError> {
   let mut pos = 0u;
-  while pos < headers.len() {
-    let zero1 = try! (headers[pos..].iter().position (|&ch|ch == 0) .ok_or (WrongHeaders));
-    let header_name = try! (from_utf8 (headers[pos .. pos + zero1]) .ok_or (WrongHeaders));
+  while pos < raw_headers.len() {
+    let zero1 = try! (raw_headers[pos..].iter().position (|&ch|ch == 0) .ok_or (WrongHeaders));
+    let header_name = try! (from_utf8 (raw_headers[pos .. pos + zero1]) .ok_or (WrongHeaders));
     pos = pos + zero1 + 1;
-    let zero2 = try! (headers[pos..].iter().position (|&ch|ch == 0) .ok_or (WrongHeaders));
-    let header_value = try! (from_utf8 (headers[pos .. pos + zero2]) .ok_or (WrongHeaders));
+    let zero2 = try! (raw_headers[pos..].iter().position (|&ch|ch == 0) .ok_or (WrongHeaders));
+    let header_value = try! (from_utf8 (raw_headers[pos .. pos + zero2]) .ok_or (WrongHeaders));
     header (header_name, header_value);
     pos = pos + zero2 + 1;
   }
-  Ok (stream)
+  Ok(())
 }
 
-/// Parse the headers and pack them into a map.
-///
-/// Returns the map with the headers and the `tcp_stream` wrapped into a `BufferedStream`.<br>
-/// You should use the stream to read the rest of the query and send the response.
-pub fn scgi_string_map (tcp_stream: TcpStream) -> Result<(HashMap<String, String, FnvHasher>, BufferedStream<TcpStream>), ScgiError> {
+/// Parse the headers and pack them as strings into a map.
+pub fn string_map (raw_headers: &Vec<u8>) -> Result<HashMap<String, String, FnvHasher>, ScgiError> {
   let mut headers_map = std::collections::HashMap::with_capacity_and_hasher (48, FnvHasher);
-  let buffered_stream = try! (scgi_parse (tcp_stream, |name,value| {headers_map.insert (name.to_string(), value.to_string());}));
-  Ok ((headers_map, buffered_stream))
+  try! (parse (raw_headers, |name,value| {headers_map.insert (name.to_string(), value.to_string());}));
+  Ok (headers_map)
+}
+
+/// Parse the headers and pack them as slices into a map.
+pub fn str_map<'h> (raw_headers: &'h Vec<u8>) -> Result<HashMap<&'h str, &'h str, FnvHasher>, ScgiError> {
+  let mut headers_map = std::collections::HashMap::with_capacity_and_hasher (48, FnvHasher);
+  try! (parse (raw_headers, |name,value| {headers_map.insert (name, value);}));
+  Ok (headers_map)
 }
 
 #[test] fn test_scgi() {
@@ -98,8 +107,9 @@ pub fn scgi_string_map (tcp_stream: TcpStream) -> Result<(HashMap<String, String
   match stream {
     Err (err) => {panic! ("Accept error: {}", err)},
     Ok (tcp_stream) => {
-      let (map, mut stream) = scgi_string_map (tcp_stream) .unwrap();
-      assert_eq! (map["REQUEST_URI".to_string()][], "/deepthought");
+      let (raw_headers, mut stream) = read_headers (tcp_stream) .unwrap();
+      assert_eq! (str_map (&raw_headers) .unwrap() ["REQUEST_URI"], "/deepthought");
+      assert_eq! (string_map (&raw_headers) .unwrap() ["REQUEST_URI".to_string()] [], "/deepthought");
       stream.write (b"Status: 200 OK\r\nContent-Type: text/plain\r\n\r\n42") .unwrap();
     }
   }
