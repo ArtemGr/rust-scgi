@@ -10,12 +10,14 @@ extern crate rustc;
 use rustc::util::nodemap::FnvHasher;  // http://www.reddit.com/r/rust/comments/2l4kxf/std_hashmap_is_slow/
 use std::collections::HashMap;
 use std::error::FromError;
-use std::io::{Listener, Acceptor, BufferedStream, IoError};
-use std::io::net::ip::ToSocketAddr;
-use std::io::net::tcp::{TcpListener, TcpStream};
-use std::io::timer::sleep;
+use std::io::{BufferedStream, IoError};
+use std::io::net::tcp::{TcpStream};
 use std::str::from_utf8;
-use std::time::duration::Duration;
+
+#[cfg(test)] use std::io::{Listener, Acceptor};
+#[cfg(test)] use std::io::net::tcp::{TcpListener};
+#[cfg(test)] use std::io::timer::sleep;
+#[cfg(test)] use std::time::duration::Duration;
 
 /// SCGI parsing errors.
 #[deriving(Show)]
@@ -90,7 +92,7 @@ pub fn scgi_string_map (tcp_stream: TcpStream) -> Result<(HashMap<String, String
     stream.write (b"What is the answer to life, the Universe and everything?") .unwrap();
     assert_eq! (stream.read_to_string().unwrap()[], "Status: 200 OK\r\nContent-Type: text/plain\r\n\r\n42");
   });
-  let mut acceptor = TcpListener::bind (("127.0.0.1", port)) .listen().unwrap();
+  let mut acceptor = TcpListener::bind (("127.0.0.1", port)) .unwrap().listen().unwrap();
   acceptor.set_timeout (Some (100));
   let stream = acceptor.incoming().next().unwrap();
   match stream {
