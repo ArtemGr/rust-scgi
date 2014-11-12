@@ -27,4 +27,4 @@ pub fn main() {
 }
 ```
 
-[A full example with Result error handling.](https://github.com/ArtemGr/rust-scgi/blob/master/src/scgi.rs)
+[A full example with Result error handling.](https://github.com/ArtemGr/rust-scgi/blob/master/src/example.rs)
