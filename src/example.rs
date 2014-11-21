@@ -26,7 +26,7 @@ pub fn main() {
             try! (stream.write (
               b"Status: 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 4\r\nConnection: close\r\n\r\nHi\r\n"));
             Ok(())
-          })() {println! ("scgi] Error: {}", error);}
+          })() {println! ("scgi] Error: {}", error)}
         })
       }
     }

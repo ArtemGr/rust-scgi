@@ -4,6 +4,7 @@
 
 #![feature(slicing_syntax)]
 #![feature(default_type_params)]
+#![feature(globs)]
 
 extern crate rustc;
 
@@ -18,6 +19,8 @@ use std::str::from_utf8;
 #[cfg(test)] use std::io::net::tcp::{TcpListener};
 #[cfg(test)] use std::io::timer::sleep;
 #[cfg(test)] use std::time::duration::Duration;
+
+use ScgiError::*;
 
 /// SCGI parsing errors.
 #[deriving(Show)]
