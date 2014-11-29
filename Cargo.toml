@@ -3,6 +3,13 @@ name = "scgi"
 version = "0.0.1"
 authors = ["ArtemGr <artemciy@gmail.com>"]
 
+description = "Simple SCGI parser"
+documentation = "http://www.rust-ci.org/ArtemGr/rust-scgi/doc/scgi/"
+repository = "https://github.com/ArtemGr/rust-scgi"
+readme = "README.md"
+keywords = ["web", "server"]
+license = "MIT"
+
 [lib]
 name = "scgi"
 path = "src/scgi.rs"
