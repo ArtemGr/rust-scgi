@@ -7,7 +7,7 @@
 #![feature(default_type_params)]
 #![feature(globs)]
 
-extern crate rustc;
+//extern crate rustc;
 
 //use rustc::util::nodemap::FnvHasher;  // http://www.reddit.com/r/rust/comments/2l4kxf/std_hashmap_is_slow/
 use std::collections::HashMap;
