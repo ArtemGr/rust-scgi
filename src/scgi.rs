@@ -9,7 +9,7 @@
 
 extern crate rustc;
 
-use rustc::util::nodemap::FnvHasher;  // http://www.reddit.com/r/rust/comments/2l4kxf/std_hashmap_is_slow/
+//use rustc::util::nodemap::FnvHasher;  // http://www.reddit.com/r/rust/comments/2l4kxf/std_hashmap_is_slow/
 use std::collections::HashMap;
 use std::error::FromError;
 use std::io::{BufferedStream, IoError};
@@ -85,15 +85,15 @@ pub fn parse<'h> (raw_headers: &'h Vec<u8>, header: |&'h str,&'h str|) -> Result
 }
 
 /// Parse the headers and pack them as strings into a map.
-pub fn string_map (raw_headers: &Vec<u8>) -> Result<HashMap<String, String, FnvHasher>, ScgiError> {
-  let mut headers_map = std::collections::HashMap::with_capacity_and_hasher (48, FnvHasher);
+pub fn string_map (raw_headers: &Vec<u8>) -> Result<HashMap<String, String>, ScgiError> {
+  let mut headers_map = std::collections::HashMap::with_capacity (48);
   try! (parse (raw_headers, |name,value| {headers_map.insert (name.to_string(), value.to_string());}));
   Ok (headers_map)
 }
 
 /// Parse the headers and pack them as slices into a map.
-pub fn str_map<'h> (raw_headers: &'h Vec<u8>) -> Result<HashMap<&'h str, &'h str, FnvHasher>, ScgiError> {
-  let mut headers_map = std::collections::HashMap::with_capacity_and_hasher (48, FnvHasher);
+pub fn str_map<'h> (raw_headers: &'h Vec<u8>) -> Result<HashMap<&'h str, &'h str>, ScgiError> {
+  let mut headers_map = std::collections::HashMap::with_capacity (48);
   try! (parse (raw_headers, |name,value| {headers_map.insert (name, value);}));
   Ok (headers_map)
 }
