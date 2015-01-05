@@ -25,7 +25,7 @@ use std::str::{from_utf8, Utf8Error};
 use ScgiError::*;
 
 /// SCGI parsing errors.
-#[deriving(Show)]
+#[derive(Show)]
 pub enum ScgiError {
   /// Length can't be decoded to an integer.
   BadLength,
@@ -49,7 +49,7 @@ pub fn read_headers (tcp_stream: TcpStream) -> Result<(Vec<u8>, BufferedStream<T
   let mut stream = BufferedStream::new (tcp_stream);
   let mut raw_headers: Vec<u8>;
   // Read the headers.
-  let mut length_string: [u8, ..10] = unsafe {std::mem::uninitialized()};
+  let mut length_string: [u8; 10] = unsafe {std::mem::uninitialized()};
   let mut length_string_len = 0u;
   loop {
     let ch = try! (stream.read_char());
