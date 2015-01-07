@@ -1,6 +1,6 @@
 [package]
 name = "scgi"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["ArtemGr <artemciy@gmail.com>"]
 
 description = "Simple SCGI parser"

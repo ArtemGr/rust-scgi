@@ -4,8 +4,6 @@
 // [build] cd .. && cargo test
 
 #![feature(slicing_syntax)]
-#![feature(default_type_params)]
-#![feature(globs)]
 
 //extern crate rustc;
 
@@ -70,7 +68,7 @@ pub fn read_headers (tcp_stream: TcpStream) -> Result<(Vec<u8>, BufferedStream<T
 }
 
 /// Parse the headers, invoking the `header` closure for every header parsed.
-pub fn parse<'h> (raw_headers: &'h Vec<u8>, header: |&'h str,&'h str|) -> Result<(), ScgiError> {
+pub fn parse<'h> (raw_headers: &'h Vec<u8>, mut header: Box<FnMut(&'h str,&'h str)>) -> Result<(), ScgiError> {
   let mut pos = 0u;
   while pos < raw_headers.len() {
     let zero1 = try! (raw_headers[pos..].iter().position (|&ch|ch == 0) .ok_or (WrongHeaders));
@@ -87,14 +85,14 @@ pub fn parse<'h> (raw_headers: &'h Vec<u8>, header: |&'h str,&'h str|) -> Result
 /// Parse the headers and pack them as strings into a map.
 pub fn string_map (raw_headers: &Vec<u8>) -> Result<HashMap<String, String>, ScgiError> {
   let mut headers_map = std::collections::HashMap::with_capacity (48);
-  try! (parse (raw_headers, |name,value| {headers_map.insert (name.to_string(), value.to_string());}));
+  try! (parse (raw_headers, box |&mut: name,value| {headers_map.insert (name.to_string(), value.to_string());}));
   Ok (headers_map)
 }
 
 /// Parse the headers and pack them as slices into a map.
 pub fn str_map<'h> (raw_headers: &'h Vec<u8>) -> Result<HashMap<&'h str, &'h str>, ScgiError> {
   let mut headers_map = std::collections::HashMap::with_capacity (48);
-  try! (parse (raw_headers, |name,value| {headers_map.insert (name, value);}));
+  try! (parse (raw_headers, box |&mut: name,value| {headers_map.insert (name, value);}));
   Ok (headers_map)
 }
 
