@@ -8,6 +8,7 @@
 //use rustc::util::nodemap::FnvHasher;  // http://www.reddit.com/r/rust/comments/2l4kxf/std_hashmap_is_slow/
 use std::collections::HashMap;
 use std::error::FromError;
+use std::fmt::{Display, Formatter};
 use std::old_io::{BufferedStream, IoError};
 use std::old_io::net::tcp::{TcpStream};
 use std::str::{from_utf8, Utf8Error};
@@ -36,6 +37,9 @@ pub enum ScgiError {
 }
 impl FromError<IoError> for ScgiError {fn from_error (io_error: IoError) -> ScgiError {IO (io_error)}}
 impl FromError<Utf8Error> for ScgiError {fn from_error (utf8_error: Utf8Error) -> ScgiError {Utf8 (utf8_error)}}
+impl Display for ScgiError {
+  fn fmt (&self, fmt: &mut Formatter) -> Result<(), std::fmt::Error> {write! (fmt, "{:?}", self)}
+}
 
 /// Read the headers from the stream.
 ///
@@ -46,7 +50,7 @@ pub fn read_headers (tcp_stream: TcpStream) -> Result<(Vec<u8>, BufferedStream<T
   let mut raw_headers: Vec<u8>;
   // Read the headers.
   let mut length_string: [u8; 10] = unsafe {std::mem::uninitialized()};
-  let mut length_string_len = 0us;
+  let mut length_string_len = 0usize;
   loop {
     let ch = try! (stream.read_char());
     if ch >= '0' && ch <= '9' {
@@ -67,7 +71,7 @@ pub fn read_headers (tcp_stream: TcpStream) -> Result<(Vec<u8>, BufferedStream<T
 
 /// Parse the headers, invoking the `header` closure for every header parsed.
 pub fn parse<'h,H> (raw_headers: &'h Vec<u8>, mut header: H) -> Result<(), ScgiError> where H: FnMut(&'h str,&'h str) {
-  let mut pos = 0us;
+  let mut pos = 0usize;
   while pos < raw_headers.len() {
     let zero1 = try! (raw_headers[pos..].iter().position (|&ch|ch == 0) .ok_or (WrongHeaders));
     let header_name = try! (from_utf8 (&raw_headers[pos .. pos + zero1]));
