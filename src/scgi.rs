@@ -3,13 +3,14 @@
 //! This is partly a port of my Java parser: https://gist.github.com/ArtemGr/38425.
 // [build] cd .. && cargo test
 
-#![feature(io,core,std_misc)]
+#![feature(io,core,std_misc,old_io)]
+#![allow(deprecated)]
 
 //use rustc::util::nodemap::FnvHasher;  // http://www.reddit.com/r/rust/comments/2l4kxf/std_hashmap_is_slow/
 use std::collections::HashMap;
 use std::error::FromError;
 use std::fmt::{Display, Formatter};
-use std::old_io::{BufferedStream, IoError};
+use std::old_io::{BufferedStream, IoError, Buffer, Reader, Writer};
 use std::old_io::net::tcp::{TcpStream};
 use std::str::{from_utf8, Utf8Error};
 
@@ -115,7 +116,7 @@ pub fn str_map<'h> (raw_headers: &'h Vec<u8>) -> Result<HashMap<&'h str, &'h str
     Ok (tcp_stream) => {
       let (raw_headers, mut stream) = read_headers (tcp_stream) .unwrap();
       assert_eq! (str_map (&raw_headers) .unwrap() ["REQUEST_URI"], "/deepthought");
-      assert_eq! (string_map (&raw_headers) .unwrap() ["REQUEST_URI".to_string()] .as_slice(), "/deepthought");
+      assert_eq! (string_map (&raw_headers) .unwrap() ["REQUEST_URI"] .as_slice(), "/deepthought");
       stream.write_all (b"Status: 200 OK\r\nContent-Type: text/plain\r\n\r\n42") .unwrap();
     }
   }
