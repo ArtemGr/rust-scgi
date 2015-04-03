@@ -8,7 +8,6 @@
 
 //use rustc::util::nodemap::FnvHasher;  // http://www.reddit.com/r/rust/comments/2l4kxf/std_hashmap_is_slow/
 use std::collections::HashMap;
-use std::error::FromError;
 use std::fmt::{Display, Formatter};
 use std::old_io::{BufferedStream, IoError, Buffer, Reader, Writer};
 use std::old_io::net::tcp::{TcpStream};
@@ -17,7 +16,6 @@ use std::str::{from_utf8, Utf8Error};
 #[cfg(test)] use std::old_io::{Listener, Acceptor};
 #[cfg(test)] use std::old_io::net::tcp::{TcpListener};
 #[cfg(test)] use std::old_io::timer::sleep;
-#[cfg(test)] use std::thread::Thread;
 #[cfg(test)] use std::time::duration::Duration;
 
 use ScgiError::*;
@@ -36,8 +34,8 @@ pub enum ScgiError {
   /// IoError, like when connection closed prematurely.
   IO (IoError)
 }
-impl FromError<IoError> for ScgiError {fn from_error (io_error: IoError) -> ScgiError {IO (io_error)}}
-impl FromError<Utf8Error> for ScgiError {fn from_error (utf8_error: Utf8Error) -> ScgiError {Utf8 (utf8_error)}}
+impl From<IoError> for ScgiError {fn from (io_error: IoError) -> ScgiError {IO (io_error)}}
+impl From<Utf8Error> for ScgiError {fn from (utf8_error: Utf8Error) -> ScgiError {Utf8 (utf8_error)}}
 impl Display for ScgiError {
   fn fmt (&self, fmt: &mut Formatter) -> Result<(), std::fmt::Error> {write! (fmt, "{:?}", self)}
 }
@@ -101,7 +99,7 @@ pub fn str_map<'h> (raw_headers: &'h Vec<u8>) -> Result<HashMap<&'h str, &'h str
 
 #[test] fn test_scgi() {
   let port = 13123;
-  Thread::spawn (move|| {
+  std::thread::spawn (move|| {
     sleep (Duration::milliseconds (10));
     let mut stream = TcpStream::connect (("127.0.0.1", port));
     stream.write_all (b"70:CONTENT_LENGTH\x0056\x00SCGI\x001\x00REQUEST_METHOD\x00POST\x00REQUEST_URI\x00/deepthought\x00,") .unwrap();
