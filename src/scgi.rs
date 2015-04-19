@@ -3,20 +3,13 @@
 //! This is partly a port of my Java parser: https://gist.github.com/ArtemGr/38425.
 // [build] cd .. && cargo test
 
-#![feature(io,core,std_misc,old_io)]
-#![allow(deprecated)]
-
 //use rustc::util::nodemap::FnvHasher;  // http://www.reddit.com/r/rust/comments/2l4kxf/std_hashmap_is_slow/
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
-use std::old_io::{BufferedStream, IoError, Buffer, Reader, Writer};
-use std::old_io::net::tcp::{TcpStream};
+use std::io;
+use std::io::{Read, Write};
+use std::net::{TcpStream, TcpListener};
 use std::str::{from_utf8, Utf8Error};
-
-#[cfg(test)] use std::old_io::{Listener, Acceptor};
-#[cfg(test)] use std::old_io::net::tcp::{TcpListener};
-#[cfg(test)] use std::old_io::timer::sleep;
-#[cfg(test)] use std::time::duration::Duration;
 
 use ScgiError::*;
 
@@ -31,10 +24,12 @@ pub enum ScgiError {
   WrongLength (String),
   /// Error parsing the zero-terminated HTTP headers.
   WrongHeaders,
+  /// No more data. The socket has been closed prematurely.
+  EOF,
   /// IoError, like when connection closed prematurely.
-  IO (IoError)
+  IO (io::Error)
 }
-impl From<IoError> for ScgiError {fn from (io_error: IoError) -> ScgiError {IO (io_error)}}
+impl From<io::Error> for ScgiError {fn from (io_error: io::Error) -> ScgiError {IO (io_error)}}
 impl From<Utf8Error> for ScgiError {fn from (utf8_error: Utf8Error) -> ScgiError {Utf8 (utf8_error)}}
 impl Display for ScgiError {
   fn fmt (&self, fmt: &mut Formatter) -> Result<(), std::fmt::Error> {write! (fmt, "{:?}", self)}
@@ -44,24 +39,34 @@ impl Display for ScgiError {
 ///
 /// Returns the vector containing the headers and the `tcp_stream` wrapped into a `BufferedStream`.<br>
 /// You should use the stream to read the rest of the query and send the response.
-pub fn read_headers (tcp_stream: TcpStream) -> Result<(Vec<u8>, BufferedStream<TcpStream>), ScgiError> {
-  let mut stream = BufferedStream::new (tcp_stream);
+pub fn read_headers (tcp_stream: TcpStream) -> Result<(Vec<u8>, io::BufStream<TcpStream>), ScgiError> {
+  let mut stream = io::BufStream::new (tcp_stream);
   let mut raw_headers: Vec<u8>;
   // Read the headers.
   let mut length_string: [u8; 10] = unsafe {std::mem::uninitialized()};
   let mut length_string_len = 0usize;
   loop {
-    let ch = try! (stream.read_char());
-    if ch >= '0' && ch <= '9' {
-      length_string[length_string_len] = ch as u8; length_string_len += 1;
-    } else if ch == ':' {
+    let mut ch_buf = [0u8];
+    let got = try! (stream.read (&mut ch_buf));
+    if got == 0 {return Err (EOF)}
+    let ch = ch_buf[0];
+    if ch >= b'0' && ch <= b'9' {
+      length_string[length_string_len] = ch; length_string_len += 1;
+    } else if ch == b':' {
       let length_str = try! (from_utf8 (&length_string[0 .. length_string_len]));
       let length: usize = try! (length_str.parse().map_err (|_| BadLength));
-      let headers_buf = try! (stream.read_exact (length));
-      if try! (stream.read_char()) != ',' {return Err (WrongLength (length_str.to_string()))}
+      let mut headers_buf = Vec::with_capacity (length);
+      unsafe {headers_buf.set_len (length)}
+      let mut total = 0;
+      while total < length {
+        let got = try! (stream.read (&mut headers_buf[total .. length]));
+        if got == 0 {return Err (EOF)}
+        total += got
+      }
+      if try! (stream.read (&mut ch_buf)) != 1 || ch_buf[0] != b',' {return Err (WrongLength (length_str.to_string()))}
       raw_headers = headers_buf; break;
     } else {
-      length_string[length_string_len] = ch as u8; length_string_len += 1;
+      length_string[length_string_len] = ch; length_string_len += 1;
       return Err (WrongLength (try! (from_utf8 (&length_string[0 .. length_string_len])).to_string()));
     }
   };
@@ -100,21 +105,22 @@ pub fn str_map<'h> (raw_headers: &'h Vec<u8>) -> Result<HashMap<&'h str, &'h str
 #[test] fn test_scgi() {
   let port = 13123;
   std::thread::spawn (move|| {
-    sleep (Duration::milliseconds (10));
-    let mut stream = TcpStream::connect (("127.0.0.1", port));
-    stream.write_all (b"70:CONTENT_LENGTH\x0056\x00SCGI\x001\x00REQUEST_METHOD\x00POST\x00REQUEST_URI\x00/deepthought\x00,") .unwrap();
-    stream.write_all (b"What is the answer to life, the Universe and everything?") .unwrap();
-    assert_eq! (stream.read_to_string().unwrap().as_slice(), "Status: 200 OK\r\nContent-Type: text/plain\r\n\r\n42");
+    std::thread::sleep_ms (10);
+    let mut stream = TcpStream::connect (("127.0.0.1", port)) .unwrap();
+    stream.write (b"70:CONTENT_LENGTH\x0056\x00SCGI\x001\x00REQUEST_METHOD\x00POST\x00REQUEST_URI\x00/deepthought\x00,") .unwrap();
+    stream.write (b"What is the answer to life, the Universe and everything?") .unwrap();
+    let mut buf = String::new();
+    stream.read_to_string (&mut buf).unwrap();
+    assert_eq! (&buf[..], "Status: 200 OK\r\nContent-Type: text/plain\r\n\r\n42");
   });
-  let mut acceptor = TcpListener::bind (("127.0.0.1", port)) .unwrap().listen().unwrap();
-  acceptor.set_timeout (Some (100));
+  let acceptor = TcpListener::bind (("127.0.0.1", port)) .unwrap();
   let stream = acceptor.incoming().next().unwrap();
   match stream {
     Err (err) => {panic! ("Accept error: {}", err)},
     Ok (tcp_stream) => {
       let (raw_headers, mut stream) = read_headers (tcp_stream) .unwrap();
       assert_eq! (str_map (&raw_headers) .unwrap() ["REQUEST_URI"], "/deepthought");
-      assert_eq! (string_map (&raw_headers) .unwrap() ["REQUEST_URI"] .as_slice(), "/deepthought");
+      assert_eq! (&(string_map (&raw_headers) .unwrap() ["REQUEST_URI"])[..], "/deepthought");
       stream.write_all (b"Status: 200 OK\r\nContent-Type: text/plain\r\n\r\n42") .unwrap();
     }
   }
