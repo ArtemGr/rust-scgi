@@ -39,8 +39,8 @@ impl Display for ScgiError {
 ///
 /// Returns the vector containing the headers and the `tcp_stream` wrapped into a `BufferedStream`.<br>
 /// You should use the stream to read the rest of the query and send the response.
-pub fn read_headers (tcp_stream: TcpStream) -> Result<(Vec<u8>, io::BufStream<TcpStream>), ScgiError> {
-  let mut stream = io::BufStream::new (tcp_stream);
+pub fn read_headers<S: Read + Write> (stream: S) -> Result<(Vec<u8>, io::BufStream<S>), ScgiError> {
+  let mut stream = io::BufStream::new (stream);
   let mut raw_headers: Vec<u8>;
   // Read the headers.
   let mut length_string: [u8; 10] = unsafe {std::mem::uninitialized()};
