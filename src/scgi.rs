@@ -3,6 +3,8 @@
 //! This is partly a port of my Java parser: https://gist.github.com/ArtemGr/38425.
 // [build] cd .. && cargo test
 
+#![feature(buf_stream)]
+
 //use rustc::util::nodemap::FnvHasher;  // http://www.reddit.com/r/rust/comments/2l4kxf/std_hashmap_is_slow/
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
