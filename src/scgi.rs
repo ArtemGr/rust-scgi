@@ -3,14 +3,14 @@
 //! This is partly a port of my Java parser: https://gist.github.com/ArtemGr/38425.
 // [build] cd .. && cargo test
 
-#![feature(buf_stream)]
+extern crate bufstream;
 
-//use rustc::util::nodemap::FnvHasher;  // http://www.reddit.com/r/rust/comments/2l4kxf/std_hashmap_is_slow/
-use std::collections::HashMap;
+use bufstream::BufStream;
+use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::io;
 use std::io::{Read, Write};
-use std::net::{TcpStream, TcpListener};
+#[cfg(test)] use std::net::{TcpStream, TcpListener};
 use std::str::{from_utf8, Utf8Error};
 
 use ScgiError::*;
@@ -41,8 +41,8 @@ impl Display for ScgiError {
 ///
 /// Returns the vector containing the headers and the `tcp_stream` wrapped into a `BufferedStream`.<br>
 /// You should use the stream to read the rest of the query and send the response.
-pub fn read_headers<S: Read + Write> (stream: S) -> Result<(Vec<u8>, io::BufStream<S>), ScgiError> {
-  let mut stream = io::BufStream::new (stream);
+pub fn read_headers<S: Read + Write> (stream: S) -> Result<(Vec<u8>, BufStream<S>), ScgiError> {
+  let mut stream = BufStream::new (stream);
   let mut raw_headers: Vec<u8>;
   // Read the headers.
   let mut length_string: [u8; 10] = unsafe {std::mem::uninitialized()};
@@ -91,15 +91,15 @@ pub fn parse<'h,H> (raw_headers: &'h Vec<u8>, mut header: H) -> Result<(), ScgiE
 }
 
 /// Parse the headers and pack them as strings into a map.
-pub fn string_map (raw_headers: &Vec<u8>) -> Result<HashMap<String, String>, ScgiError> {
-  let mut headers_map = std::collections::HashMap::with_capacity (48);
+pub fn string_map (raw_headers: &Vec<u8>) -> Result<BTreeMap<String, String>, ScgiError> {
+  let mut headers_map = BTreeMap::new();
   try! (parse (raw_headers, |name,value| {headers_map.insert (name.to_string(), value.to_string());}));
   Ok (headers_map)
 }
 
 /// Parse the headers and pack them as slices into a map.
-pub fn str_map<'h> (raw_headers: &'h Vec<u8>) -> Result<HashMap<&'h str, &'h str>, ScgiError> {
-  let mut headers_map = std::collections::HashMap::with_capacity (48);
+pub fn str_map<'h> (raw_headers: &'h Vec<u8>) -> Result<BTreeMap<&'h str, &'h str>, ScgiError> {
+  let mut headers_map = BTreeMap::new();
   try! (parse (raw_headers, |name,value| {headers_map.insert (name, value);}));
   Ok (headers_map)
 }

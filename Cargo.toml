@@ -1,6 +1,6 @@
 [package]
 name = "scgi"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["ArtemGr <artemciy@gmail.com>"]
 
 description = "Simple SCGI parser"
@@ -14,3 +14,12 @@ license = "MIT"
 name = "scgi"
 path = "src/scgi.rs"
 doctest = false
+
+[[bin]]
+name = "example"
+path = "src/example.rs"
+doctest = false
+bench = false
+
+[dependencies]
+bufstream = "0.1"
