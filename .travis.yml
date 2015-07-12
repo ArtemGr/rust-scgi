@@ -34,5 +34,5 @@ after_success:
 
 env:
   global:
-    - TRAVIS_CARGO_NIGHTLY_FEATURE=nightly
+    - TRAVIS_CARGO_NIGHTLY_FEATURE=""
     - secure: ObQVKZrODpvjcE4OVAFG2pv7H03/qRZQlFIqgmVR/9F+aJzb3QXdMy4lqx8hMsZT8NFYRzo/8WYPvxNKcF+2aSX0SM2wZH21p8PusnPPlBe84i/73wqROcZ9I6um5m0TDWc+hkS2BCOsr2QwRlh14MZGowwk2xhO0EZT3Xmxez8=
