@@ -43,7 +43,7 @@ impl Display for ScgiError {
 /// You should use the stream to read the rest of the query and send the response.
 pub fn read_headers<S: Read + Write> (stream: S) -> Result<(Vec<u8>, BufStream<S>), ScgiError> {
   let mut stream = BufStream::new (stream);
-  let mut raw_headers: Vec<u8>;
+  let raw_headers: Vec<u8>;
   // Read the headers.
   let mut length_string: [u8; 10] = unsafe {std::mem::uninitialized()};
   let mut length_string_len = 0usize;

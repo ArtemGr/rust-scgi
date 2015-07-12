@@ -17,7 +17,7 @@ doctest = false
 
 [[bin]]
 name = "example"
-path = "src/example.rs"
+path = "examples/example.rs"
 doctest = false
 bench = false
 

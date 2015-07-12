@@ -1,3 +1,5 @@
+// Run with `cargo run --example example`.
+
 // [build] cd .. && cargo build
 
 extern crate scgi;
