@@ -15,11 +15,5 @@ name = "scgi"
 path = "src/scgi.rs"
 doctest = false
 
-[[bin]]
-name = "example"
-path = "examples/example.rs"
-doctest = false
-bench = false
-
 [dependencies]
 bufstream = "0.1"
