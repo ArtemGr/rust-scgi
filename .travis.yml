@@ -1,21 +1,37 @@
 # http://docs.travis-ci.com/user/getting-started/
 # http://docs.travis-ci.com/user/languages/rust/
-# http://www.rust-ci.org/help/
+# https://github.com/huonw/travis-cargo
+# http://stackoverflow.com/questions/18027115/committing-via-travis-ci-failing
+
+language: rust
+
+# necessary for `travis-cargo coveralls --no-sudo`
+addons:
+  apt:
+    packages:
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+
+rust:
+  - nightly
+  - beta
+  - stable
+
+before_script:
+  - |
+      pip install 'travis-cargo<0.2' --user &&
+      export PATH=$HOME/.local/bin:$PATH
+
+script:
+  - |
+      travis-cargo build &&
+      travis-cargo test &&
+      travis-cargo --only stable doc
+
+after_success:
+  - travis-cargo --only stable doc-upload
 
 env:
   global:
-    - secure: TffakZlopmNqPKwpOM7DkLJvMxFdt2oh4rHX4mreCiHyHDNhi7PaEbfKPnE1tHezcxghHWCLrzpEvmQ74ZCNfxQN8mI4cYaefwuBan7nBuyolvtoUeWIp34yM+2+oiJc0cAFVB7joLxLw24Ospvq+HgzrzNzPqduwd9U//UIAoo=
-
-language: rust
-rust:
-  - stable
-  - beta
-  - nightly
-
-script:
-- cargo test
-- cargo doc
-
-after_script:
-- mv target/doc doc
-- curl http://www.rust-ci.org/artifacts/put?t=$RUSTCI_TOKEN | bash
+    secure: ObQVKZrODpvjcE4OVAFG2pv7H03/qRZQlFIqgmVR/9F+aJzb3QXdMy4lqx8hMsZT8NFYRzo/8WYPvxNKcF+2aSX0SM2wZH21p8PusnPPlBe84i/73wqROcZ9I6um5m0TDWc+hkS2BCOsr2QwRlh14MZGowwk2xhO0EZT3Xmxez8=
