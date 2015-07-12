@@ -76,7 +76,7 @@ pub fn read_headers<S: Read + Write> (stream: S) -> Result<(Vec<u8>, BufStream<S
 }
 
 /// Parse the headers, invoking the `header` closure for every header parsed.
-pub fn parse<'h,H> (raw_headers: &'h Vec<u8>, mut header: H) -> Result<(), ScgiError> where H: FnMut(&'h str,&'h str) {
+pub fn parse<'h,H> (raw_headers: &'h [u8], mut header: H) -> Result<(), ScgiError> where H: FnMut(&'h str,&'h str) {
   let mut pos = 0usize;
   while pos < raw_headers.len() {
     let zero1 = try! (raw_headers[pos..].iter().position (|&ch|ch == 0) .ok_or (WrongHeaders));
@@ -91,14 +91,14 @@ pub fn parse<'h,H> (raw_headers: &'h Vec<u8>, mut header: H) -> Result<(), ScgiE
 }
 
 /// Parse the headers and pack them as strings into a map.
-pub fn string_map (raw_headers: &Vec<u8>) -> Result<BTreeMap<String, String>, ScgiError> {
+pub fn string_map (raw_headers: &[u8]) -> Result<BTreeMap<String, String>, ScgiError> {
   let mut headers_map = BTreeMap::new();
   try! (parse (raw_headers, |name,value| {headers_map.insert (name.to_string(), value.to_string());}));
   Ok (headers_map)
 }
 
 /// Parse the headers and pack them as slices into a map.
-pub fn str_map<'h> (raw_headers: &'h Vec<u8>) -> Result<BTreeMap<&'h str, &'h str>, ScgiError> {
+pub fn str_map<'h> (raw_headers: &'h [u8]) -> Result<BTreeMap<&'h str, &'h str>, ScgiError> {
   let mut headers_map = BTreeMap::new();
   try! (parse (raw_headers, |name,value| {headers_map.insert (name, value);}));
   Ok (headers_map)
