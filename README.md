@@ -6,4 +6,4 @@ A simple SCGI connector for Rust.<br>
     [dependencies.scgi]
     git = "https://github.com/ArtemGr/rust-scgi"
 
-[Example](https://github.com/ArtemGr/rust-scgi/blob/master/src/example.rs)
+[Example](https://github.com/ArtemGr/rust-scgi/blob/master/examples/example.rs)
