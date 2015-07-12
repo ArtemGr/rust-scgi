@@ -4,7 +4,7 @@
 
 env:
   global:
-    - secure: Anis9kdBmAT5iocg3aL7HQzT6R9aVhEgjt/7h/tcuYibtwOsXzXi+zbj6ZKrETTtk/STWdSWcYnLeiMkKB4PN7EbseO4BQpR6P7wSRoksOWj8l3U6mQ75dmp8OExoc4C/l0sU0dogCPRvrq/HllGLQXMzGGdcM0ssyaK/DgKDd0=
+    - secure: TffakZlopmNqPKwpOM7DkLJvMxFdt2oh4rHX4mreCiHyHDNhi7PaEbfKPnE1tHezcxghHWCLrzpEvmQ74ZCNfxQN8mI4cYaefwuBan7nBuyolvtoUeWIp34yM+2+oiJc0cAFVB7joLxLw24Ospvq+HgzrzNzPqduwd9U//UIAoo=
 
 language: rust
 rust:
