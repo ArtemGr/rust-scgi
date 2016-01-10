@@ -1,10 +1,10 @@
 [package]
 name = "scgi"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["ArtemGr <artemciy@gmail.com>"]
 
 description = "Simple SCGI parser"
-documentation = "http://www.rust-ci.org/ArtemGr/rust-scgi/doc/scgi/"
+documentation = "http://artemgr.github.io/rust-scgi/scgi/"
 repository = "https://github.com/ArtemGr/rust-scgi"
 readme = "README.md"
 keywords = ["web", "server"]
@@ -16,4 +16,4 @@ path = "src/scgi.rs"
 doctest = false
 
 [dependencies]
-bufstream = "0.1"
+bufstream = "0.1.1"
