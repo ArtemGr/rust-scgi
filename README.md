@@ -1,5 +1,4 @@
-##rust-scgi [![Build Status](https://travis-ci.org/ArtemGr/rust-scgi.svg?branch=master)](https://travis-ci.org/ArtemGr/rust-scgi) [![](https://img.shields.io/crates/v/scgi.svg)](https://crates.io/crates/scgi)
-![](https://tokei.rs/b1/github/ArtemGr/rust-scgi)
+##rust-scgi [![Build Status](https://travis-ci.org/ArtemGr/rust-scgi.svg?branch=master)](https://travis-ci.org/ArtemGr/rust-scgi) [![](https://img.shields.io/crates/v/scgi.svg)](https://crates.io/crates/scgi) ![](https://tokei.rs/b1/github/ArtemGr/rust-scgi)
 <br>
 
 A simple SCGI connector for Rust.<br>
