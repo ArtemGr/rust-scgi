@@ -37,6 +37,19 @@ impl Display for ScgiError {
   fn fmt (&self, fmt: &mut Formatter) -> Result<(), std::fmt::Error> {write! (fmt, "{:?}", self)}
 }
 
+impl std::error::Error for ScgiError {
+    fn description(&self) -> &str {
+        "ScgiError"
+    }
+    fn cause(&self) -> Option<&std::error::Error> {
+        match *self {
+            Utf8(ref e) => Some(e),
+            IO(ref e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
 /// Read the headers from the stream.
 ///
 /// Returns the vector containing the headers and the `tcp_stream` wrapped into a `BufferedStream`.<br>
