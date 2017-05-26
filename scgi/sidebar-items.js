@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ScgiError","SCGI parsing errors."]],"fn":[["parse","Parse the headers, invoking the `header` closure for every header parsed."],["read_headers","Read the headers from the stream."],["str_map","Parse the headers and pack them as slices into a map."],["string_map","Parse the headers and pack them as strings into a map."]]});
